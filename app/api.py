@@ -140,24 +140,24 @@ async def get_ml_metrics(
         ml_token: Union[str, None] = Header(default=None, convert_underscores=False),
     ):
     if mltoken['key'] == ml_token:
-        # data_raw = {'Age': [Age],
-        #             'Sex': [Sex],
-        #             'ChestPainType': [ChestPainType],
-        #             'Cholesterol': [Cholesterol],
-        #             'FastingBS': [0],
-        #             'MaxHR': [MaxHR],
-        #             'ExerciseAngina': [ExerciseAngina],
-        #             'Oldpeak': [Oldpeak],
-        #             'ST_Slope': [ST_Slope]}
-        data_raw = {'Age': [49],
-            'Sex': ['F'],
-            'ChestPainType': ['NAP'],
-            'Cholesterol': [180],
-            'FastingBS': [0],
-            'MaxHR': [156],
-            'ExerciseAngina': ['N'],
-            'Oldpeak': [1.0],
-            'ST_Slope': ['Flat']}
+        data_raw = {'Age': [Age],
+                    'Sex': [Sex],
+                    'ChestPainType': [ChestPainType],
+                    'Cholesterol': [Cholesterol],
+                    'FastingBS': [0],
+                    'MaxHR': [MaxHR],
+                    'ExerciseAngina': [ExerciseAngina],
+                    'Oldpeak': [Oldpeak],
+                    'ST_Slope': [ST_Slope]}
+        # data_raw = {'Age': [49],
+        #     'Sex': ['F'],
+        #     'ChestPainType': ['NAP'],
+        #     'Cholesterol': [180],
+        #     'FastingBS': [0],
+        #     'MaxHR': [156],
+        #     'ExerciseAngina': ['N'],
+        #     'Oldpeak': [1.0],
+        #     'ST_Slope': ['Flat']}
         inference = pd.DataFrame(data_raw)
         # inference = inference.to_dict(orient='records')
 

@@ -15,7 +15,7 @@ This repository provides a **FastAPI** template for deploying machine learning m
 
 ### **1. Clone the Repository**  
 ```bash  
-git clone https://github.com/your-username/fastapi-ml-template.git  
+git clone https://github.com/argyadiva/fastapi_dsi_mfm1.git
 cd fastapi-ml-template  
 ```
 

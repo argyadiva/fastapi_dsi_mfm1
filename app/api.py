@@ -18,6 +18,7 @@ from sqlalchemy import create_engine
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score, recall_score, r2_score, mean_absolute_error, mean_squared_error
 import numpy as np
 from functools import lru_cache
+import pickle
 
 ### define config logging format json file
 logger = logging.getLogger(__name__)
@@ -44,6 +45,16 @@ DB_CONFIG = {
     'port': '5432'
 }
 engine = create_engine(f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}")
+
+def transform_columns_numerical(based_data, based_column, column_encoder):
+  with open(f"{column_encoder}.pkl", "rb") as f:
+      encoder = pickle.load(f)
+      based_data[based_column] = encoder.transform(based_data[[based_column]])
+
+def transform_columns_categorical(based_data, based_column, column_encoder):
+  with open(f"{column_encoder}.pkl", "rb") as f:
+      encoder = pickle.load(f)
+      based_data[based_column] = encoder.transform(based_data[based_column])
 
 def get_data_from_db(query):
     try:
@@ -118,28 +129,51 @@ async def read_root() -> dict:
                     )
 async def get_ml_metrics(
         request: Request,
-        file: UploadFile = File(...), 
-        user_name: str = Form(...),
-        ml_topic: str = Form(...),
+        Oldpeak: str = Form(...),
+        Age: str = Form(...),
+        Cholesterol: str = Form(...),
+        MaxHR: str = Form(...),
+        Sex: str = Form(...),
+        ChestPainType: str = Form(...),
+        ExerciseAngina: str = Form(...),
+        ST_Slope: str = Form(...),
         ml_token: Union[str, None] = Header(default=None, convert_underscores=False),
     ):
     if mltoken['key'] == ml_token:
-        if not file.filename.endswith('.csv'):
-            raise HTTPException(status_code=400, detail="Invalid file format")
-        try:
-            # Read CSV
-            contents = await file.read()
-            csv_data = pd.read_csv(BytesIO(contents))
-            
-            # Get data from DB (Modify the query accordingly)
-            db_data = get_data_from_db("SELECT * FROM table")
-            pd.concat([csv_data, db_data],axis=0)
-            load_data_to_db(db_data, 'ml_leaderboard')
+        # data_raw = {'Age': [Age],
+        #             'Sex': [Sex],
+        #             'ChestPainType': [ChestPainType],
+        #             'Cholesterol': [Cholesterol],
+        #             'FastingBS': [0],
+        #             'MaxHR': [MaxHR],
+        #             'ExerciseAngina': [ExerciseAngina],
+        #             'Oldpeak': [Oldpeak],
+        #             'ST_Slope': [ST_Slope]}
+        data_raw = {'Age': [49],
+            'Sex': ['F'],
+            'ChestPainType': ['NAP'],
+            'Cholesterol': [180],
+            'FastingBS': [0],
+            'MaxHR': [156],
+            'ExerciseAngina': ['N'],
+            'Oldpeak': [1.0],
+            'ST_Slope': ['Flat']}
+        inference = pd.DataFrame(data_raw)
+        # inference = inference.to_dict(orient='records')
 
-            return {'project':'project_dummy', 'metrics':'metrics_dummy'}
+        transform_columns_numerical(inference, 'Oldpeak', 'app/models/oldpeak_encoder')
+        transform_columns_numerical(inference, 'Age', 'app/models/age_encoder')
+        transform_columns_numerical(inference, 'Cholesterol', 'app/models/cholesterol_encoder')
+        transform_columns_numerical(inference, 'MaxHR', 'app/models/maxhr_encoder')
+        transform_columns_categorical(inference, 'Sex', 'app/models/sex_encoder')
+        transform_columns_categorical(inference, 'ChestPainType', 'app/models/chestpaintype_encoder')
+        transform_columns_categorical(inference, 'ExerciseAngina', 'app/models/exerciseangina_encoder')
+        transform_columns_categorical(inference, 'ST_Slope', 'app/models/st_slope_encoder')
 
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+        with open(f"app/models/classifier.pkl", "rb") as f:
+            classifier_lr = pickle.load(f)
+        prediction = classifier_lr.predict_proba(inference)
+        return {f"probability to have heart disease : {prediction[0][1]}"}
         
     else:
         raise HTTPException(
